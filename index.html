@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tênis de Mesa — Video Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+    
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      min-height: 100vh;
+      background-attachment: fixed;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-strong {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .category-btn {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .category-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .category-btn:hover::before {
+      left: 100%;
+    }
+
+    .category-btn.active {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-color: #3b82f6;
+    }
+
+    .video-card {
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+    }
+
+    .video-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 1rem;
+      padding: 2px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .video-card:hover::after {
+      opacity: 1;
+    }
+
+    .video-card:hover {
+      transform: translateY(-8px) scale(1.02);
+    }
+
+    .sidebar {
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-hidden {
+      transform: translateX(-100%);
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        z-index: 40;
+        height: 100vh;
+      }
+    }
+
+    .search-glow {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .pulse-ring {
+      animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+      }
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .loading-spinner {
+      border: 3px solid rgba(59, 130, 246, 0.3);
+      border-radius: 50%;
+      border-top-color: #3b82f6;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(59, 130, 246, 0.5);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(59, 130, 246, 0.7);
+    }
+  </style>
+</head>
+
+<body class="text-slate-100">
+
+<!-- Sidebar -->
+<aside id="sidebar" class="sidebar fixed left-0 top-0 h-screen w-80 glass-strong p-6 overflow-y-auto z-40">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold gradient-text">🏓 TT Video Hub</h1>
+      <p class="text-xs text-slate-400 mt-1">Playlists Dinâmicas</p>
+    </div>
+    <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
+
+  <div class="mb-6">
+    <button onclick="resetApiKey()" class="w-full glass p-3 rounded-lg text-sm text-blue-400 hover:bg-blue-500/20 transition">
+      🔑 Trocar API Key
+    </button>
+  </div>
+
+  <div class="mb-6">
+    <h2 class="text-xs uppercase tracking-wider text-slate-400 mb-3 font-semibold">Categorias Técnicas</h2>
+    <div id="categories" class="space-y-2"></div>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<div class="md:ml-80 min-h-screen">
+  
+  <!-- Header -->
+  <header class="glass-strong sticky top-0 z-30 border-b border-white/10">
+    <div class="max-w-7xl mx-auto p-4 md:p-6">
+      <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="md:hidden glass p-2 rounded-lg">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+        
+        <div class="flex-1 relative">
+          <input 
+            id="searchInput"
+            placeholder="🔍 Buscar técnica, jogador, fundamento..."
+            class="w-full p-4 pl-12 rounded-xl glass text-white placeholder-slate-400 focus:search-glow outline-none transition-all">
+          <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Videos Grid -->
+  <main class="max-w-7xl mx-auto p-4 md:p-6">
+    <div class="flex items-center justify-between mb-6">
+      <h2 id="sectionTitle" class="text-2xl font-bold">Selecione uma Categoria</h2>
+      <div id="videoCount" class="glass px-4 py-2 rounded-full text-sm"></div>
+    </div>
+    
+    <div id="videos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="col-span-full flex flex-col items-center justify-center py-20 text-center">
+        <div class="pulse-ring glass w-20 h-20 rounded-full flex items-center justify-center mb-4">
+          <span class="text-4xl">🏓</span>
+        </div>
+        <p class="text-slate-400 text-lg">Escolha uma categoria para começar</p>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- Player Modal -->
+<div id="playerModal"
+     class="fixed inset-0 z-50 hidden bg-black/95 flex items-center justify-center backdrop-blur-sm p-4"
+     onclick="handleBackdropClick(event)">
+
+  <div class="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
+    <button
+      onclick="closePlayer()"
+      class="absolute top-4 right-4 z-50 glass-strong hover:bg-red-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl transition-all hover:scale-110">
+      ✕
+    </button>
+
+    <iframe
+      id="playerIframe"
+      class="w-full h-full"
+      allow="autoplay; encrypted-media"
+      allowfullscreen>
+    </iframe>
+  </div>
+</div>
+
+<!-- API Key Modal -->
+<div id="apiModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+  <div class="glass-strong p-8 rounded-2xl w-full max-w-md shadow-2xl m-4">
+    <div class="text-center mb-6">
+      <div class="inline-block glass w-16 h-16 rounded-full flex items-center justify-center mb-4">
+        <span class="text-3xl">🔑</span>
+      </div>
+      <h2 class="text-2xl font-bold mb-2">YouTube API Key</h2>
+      <p class="text-sm text-slate-400">
+        Insira sua chave da YouTube Data API v3.<br>
+        Ela ficará salva apenas neste navegador.
+      </p>
+    </div>
+
+    <input id="apiKeyInput"
+           type="text"
+           placeholder="AIza..."
+           class="w-full p-4 rounded-xl glass text-white placeholder-slate-400 mb-4 outline-none focus:ring-2 focus:ring-blue-500">
+
+    <button onclick="saveApiKey()"
+            class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-semibold">
+      Salvar e Continuar
+    </button>
+  </div>
+</div>
+
+<script>
+const MAX_RESULTS = 50;
+let API_KEY = sessionStorage.getItem("YT_API_KEY");
+let currentCategory = null;
+let nextPageToken = null;
+let allVideos = [];
+let isLoading = false;
+
+/* =========================
+   API KEY FLOW
+========================= */
+const apiModal = document.getElementById("apiModal");
+
+if (!API_KEY) {
+  apiModal.classList.remove("hidden");
+}
+
+function saveApiKey() {
+  const input = document.getElementById("apiKeyInput").value.trim();
+  if (input.length < 30) {
+    alert("API Key inválida.");
+    return;
+  }
+  sessionStorage.setItem("YT_API_KEY", input);
+  API_KEY = input;
+  apiModal.classList.add("hidden");
+}
+
+function resetApiKey() {
+  if (confirm("Deseja remover a API Key?")) {
+    sessionStorage.removeItem("YT_API_KEY");
+    API_KEY = null;
+    location.reload();
+  }
+}
+
+/* =========================
+   CATEGORIES
+========================= */
+const categories = [
+  { name: "Saques (Serves)", q: "table tennis serve technique" },
+  { name: "Recepção de Saque", q: "table tennis serve receive" },
+  { name: "Forehand Drive", q: "table tennis forehand drive" },
+  { name: "Backhand Drive", q: "table tennis backhand drive" },
+  { name: "Topspin", q: "table tennis topspin technique" },
+  { name: "Loop contra Backspin", q: "loop against backspin table tennis" },
+  { name: "Bloqueio", q: "table tennis blocking" },
+  { name: "Push / Jogo Curto", q: "table tennis push short game" },
+  { name: "Footwork", q: "table tennis footwork" },
+  { name: "Estratégia e Tática", q: "table tennis tactics strategy" },
+  { name: "Pino Longo — Técnicas", q: "long pimples table tennis technique" },
+  { name: "Pino Longo — Jogar Contra", q: "playing against long pimples" },
+  { name: "Pino Curto / Médio", q: "short pimples table tennis" },
+  { name: "Defesa / Chopper", q: "table tennis chopping defense" },
+  { name: "Equipamentos", q: "table tennis equipment rubbers" },
+  { name: "Treinos e Drills", q: "table tennis drills training" },
+  { name: "Análise Profissional", q: "professional table tennis analysis" },
+  { name: "Conteúdo Avançado", q: "advanced table tennis techniques" },
+  { name: "Iniciantes", q: "table tennis beginner fundamentals" },
+  { name: "Shorts Técnicos", q: "table tennis shorts technique" }
+];
+
+const categoriesEl = document.getElementById("categories");
+const videosEl = document.getElementById("videos");
+
+categories.forEach(cat => {
+  const btn = document.createElement("button");
+  btn.className = "category-btn glass p-3 rounded-lg text-left hover:bg-white/10 transition-all text-sm";
+  btn.textContent = cat.name;
+  btn.onclick = () => {
+    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCategory = cat;
+    allVideos = [];
+    nextPageToken = null;
+    loadVideos(cat);
+  };
+  categoriesEl.appendChild(btn);
+});
+
+/* =========================
+   YOUTUBE FETCH
+========================= */
+async function loadVideos(category, searchTerm = "", loadMore = false) {
+  if (!API_KEY || isLoading) return;
+
+  isLoading = true;
+  const query = searchTerm || category.q;
+  
+  if (!loadMore) {
+    document.getElementById("sectionTitle").textContent = category.name;
+    document.getElementById("videoCount").textContent = "";
+    videosEl.innerHTML = `
+      <div class="col-span-full flex justify-center py-20">
+        <div class="loading-spinner"></div>
+      </div>
+    `;
+  } else {
+    // Mostra loading no botão
+    const loadMoreBtn = document.getElementById("loadMoreBtn");
+    if (loadMoreBtn) {
+      loadMoreBtn.innerHTML = '<div class="loading-spinner mx-auto"></div>';
+      loadMoreBtn.disabled = true;
+    }
+  }
+
+  let url =
+    `https://www.googleapis.com/youtube/v3/search` +
+    `?part=snippet&type=video&maxResults=${MAX_RESULTS}` +
+    `&q=${encodeURIComponent(query)}` +
+    `&relevanceLanguage=pt&key=${API_KEY}`;
+
+  if (loadMore && nextPageToken) {
+    url += `&pageToken=${nextPageToken}`;
+  }
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.error) {
+      videosEl.innerHTML = `
+        <div class="col-span-full text-center py-20">
+          <p class="text-red-400 text-lg">${data.error.message}</p>
+        </div>
+      `;
+      isLoading = false;
+      return;
+    }
+
+    nextPageToken = data.nextPageToken || null;
+    
+    if (loadMore) {
+      allVideos = [...allVideos, ...data.items];
+    } else {
+      allVideos = data.items;
+    }
+
+    renderVideos(allVideos, category.name);
+  } catch (error) {
+    videosEl.innerHTML = `
+      <div class="col-span-full text-center py-20">
+        <p class="text-red-400 text-lg">Erro ao carregar vídeos</p>
+      </div>
+    `;
+  }
+  
+  isLoading = false;
+}
+
+function renderVideos(items, categoryName) {
+  document.getElementById("videoCount").textContent = `${items.length} vídeos`;
+  videosEl.innerHTML = "";
+  
+  items.forEach((v, i) => {
+    const id = v.id.videoId;
+    const card = document.createElement("div");
+    card.className = "video-card glass rounded-xl overflow-hidden cursor-pointer";
+    card.style.animationDelay = `${i * 0.05}s`;
+    card.onclick = () => playVideo(id);
+    
+    card.innerHTML = `
+      <div class="relative overflow-hidden">
+        <img
+          src="${v.snippet.thumbnails.high.url}"
+          class="w-full aspect-video object-cover transition-transform duration-500 hover:scale-110"
+          alt="${v.snippet.title}">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+          <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+            <svg class="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4">
+        <h3 class="font-semibold text-sm leading-snug line-clamp-2 mb-2">
+          ${v.snippet.title}
+        </h3>
+
+        <p class="text-xs text-slate-400 mb-3">
+          ${v.snippet.channelTitle}
+        </p>
+
+        <span class="inline-block text-xs px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+          ${categoryName}
+        </span>
+      </div>
+    `;
+    
+    videosEl.appendChild(card);
+  });
+
+  // Adiciona botão "Carregar Mais" se houver mais páginas
+  if (nextPageToken) {
+    const loadMoreContainer = document.createElement("div");
+    loadMoreContainer.className = "col-span-full flex justify-center mt-8";
+    loadMoreContainer.innerHTML = `
+      <button 
+        id="loadMoreBtn"
+        onclick="loadMoreVideos()"
+        class="glass px-8 py-4 rounded-xl hover:bg-white/10 transition-all font-semibold text-lg flex items-center gap-3 group">
+        <span>Carregar Mais Vídeos</span>
+        <svg class="w-5 h-5 group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+    `;
+    videosEl.appendChild(loadMoreContainer);
+  }
+}
+
+function loadMoreVideos() {
+  if (currentCategory) {
+    loadVideos(currentCategory, "", true);
+  }
+}
+
+/* =========================
+   PLAYER
+========================= */
+function playVideo(id) {
+  const modal = document.getElementById("playerModal");
+  const iframe = document.getElementById("playerIframe");
+
+  iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+  modal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closePlayer() {
+  const modal = document.getElementById("playerModal");
+  const iframe = document.getElementById("playerIframe");
+
+  iframe.src = "";
+  modal.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+function handleBackdropClick(event) {
+  if (event.target.id === "playerModal") {
+    closePlayer();
+  }
+}
+
+/* =========================
+   SIDEBAR TOGGLE
+========================= */
+function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  sidebar.classList.toggle("sidebar-hidden");
+}
+
+/* =========================
+   SEARCH
+========================= */
+document.getElementById("searchInput").addEventListener("input", e => {
+  const term = e.target.value.trim();
+  if (term.length > 2) {
+    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+    allVideos = [];
+    nextPageToken = null;
+    loadVideos({ name: "Busca Livre" }, `table tennis ${term}`);
+  } else if (term.length === 0 && currentCategory) {
+    allVideos = [];
+    nextPageToken = null;
+    loadVideos(currentCategory);
+  }
+});
+
+/* =========================
+   PWA
+========================= */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js").catch(() => {});
+}
+</script>
+
+</body>
+</html>
